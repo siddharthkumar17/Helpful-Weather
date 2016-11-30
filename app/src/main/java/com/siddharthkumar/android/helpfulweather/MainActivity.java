@@ -16,7 +16,8 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
-import com.google.android.gms.location.LocationServices;;import java.io.InputStream;
+import com.google.android.gms.location.LocationServices;
+import java.io.InputStream;
 import java.net.URL;
 
 public class MainActivity extends AppCompatActivity implements OnConnectionFailedListener, ConnectionCallbacks{
@@ -54,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
         mGoogleApiClient.disconnect();
         super.onStop();
     }
+
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Toast.makeText(this, "Connection Failed!" , Toast.LENGTH_LONG).show();
@@ -66,8 +68,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
             lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
             if(lastLocation!=null)
                 temp.setText(lastLocation.getLatitude()+", "+lastLocation.getLongitude());
-            else
-                Toast.makeText(this, "BAD", Toast.LENGTH_SHORT).show();
+
         }
         else{
             Toast.makeText(this,"Please give location access to find accurate weather",Toast.LENGTH_LONG).show();
