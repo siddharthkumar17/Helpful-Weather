@@ -42,7 +42,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
     public static final String TAG = "helpfulweather";
     final String API_KEY = "d9a03c069a7bf250a30a3229e82a0a9b";
     private LocationManager mLocationManager = null;
-    private static final int LOCATION_INTERVAL = 30000;
+    private static final int REFRESH_TIME = 30000;
     private static final float LOCATION_DISTANCE = 100f;
     Location mlastLocation = new Location("");
     Location lastLocation=new Location("");
@@ -77,7 +77,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
         initializeLocationManager();
         try {
             mLocationManager.requestLocationUpdates(
-                    LocationManager.NETWORK_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
+                    LocationManager.NETWORK_PROVIDER, REFRESH_TIME, LOCATION_DISTANCE,
                     mLocationListeners[1]);
             if(mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER)!=null)
               lastLocation=mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER);
@@ -88,7 +88,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
         }
         try {
             mLocationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER, LOCATION_INTERVAL, LOCATION_DISTANCE,
+                    LocationManager.GPS_PROVIDER, REFRESH_TIME, LOCATION_DISTANCE,
                     mLocationListeners[0]);
             if(mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER)!=null)
                 lastLocation=mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER);
@@ -214,11 +214,9 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
                                     if(jsonWeatherData==null)
                                         Log.e(TAG,"Error json");
                                     else{
-                                        // temp.setText(jsonWeatherData);
+                                      
                                         JSONObject jsonObject = new JSONObject(jsonWeatherData);
-                                        //temp.setText("The weather in "+jsonObject.getString("name")+" is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description"));
-                                        //setTitle("Weather in "+jsonObject.getString("name"));
-                                        //json.setText(jsonWeatherData);
+
                                         Log.i(TAG,"Fetching weather");
                                         Calendar cal = Calendar.getInstance();
                                         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -251,7 +249,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
 
                         }
 
-                        wait(60000);
+                        wait(REFRESH_TIME);
                     }
                     catch(Exception e){
                         Log.e(TAG,e.getMessage());
