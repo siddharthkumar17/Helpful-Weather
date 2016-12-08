@@ -37,12 +37,13 @@ import java.net.URL;
 import java.util.Scanner;
 import java.util.concurrent.ThreadFactory;
 
+
 public class NotificationService extends Service implements GoogleApiClient.ConnectionCallbacks,GoogleApiClient.OnConnectionFailedListener {
     public GoogleApiClient mGoogleApiClient;
     public static final String TAG = "helpfulweather";
     final String API_KEY = "d9a03c069a7bf250a30a3229e82a0a9b";
     private LocationManager mLocationManager = null;
-    private static final int REFRESH_TIME = 30000;
+    private static final int REFRESH_TIME = 1800000;
     private static final float LOCATION_DISTANCE = 100f;
     Location mlastLocation = new Location("");
     Location lastLocation=new Location("");
@@ -181,80 +182,89 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
         public void run() {
             while(true){
                 synchronized (this){
-                    try{
-
-                        if(mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER)!=null)
-                            lastLocation=mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER);
-                        if(mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER)!=null)
-                            lastLocation=mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER);
-
-                        if(ContextCompat.checkSelfPermission(getApplicationContext()  , Manifest.permission.ACCESS_COARSE_LOCATION)== PackageManager.PERMISSION_GRANTED&&
-                                ContextCompat.checkSelfPermission(getApplicationContext()  , Manifest.permission.ACCESS_FINE_LOCATION)== PackageManager.PERMISSION_GRANTED
-                                )
-                        {
-
-                            if (mGoogleApiClient == null) {
-                                mGoogleApiClient = new GoogleApiClient.Builder(getApplicationContext())
-                                        .addConnectionCallbacks(this)
-                                        .addOnConnectionFailedListener(this)
-                                        .addApi(LocationServices.API)
-                                        .build();
-                            }
-
-
-
-
-                            if(lastLocation!=null){
-
-                                try{
-                                    String jsonWeatherData = new FetchWeatherTask().execute(lastLocation.getLatitude()+" "+lastLocation.getLongitude()).get();
-                                    if(jsonWeatherData==null)
-                                        Log.e(TAG,"Error json");
-                                    else{
-
-                                        JSONObject jsonObject = new JSONObject(jsonWeatherData);
-                                        double temp = jsonObject.getJSONObject("main").getDouble("temp");
-
-                                        Calendar cal = Calendar.getInstance();
-                                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-                                        Log.i(TAG,lastLocation.toString());
-                                        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext())
-                                                .setSmallIcon(R.drawable.ms02_example_heavy_rain_showers)
-                                                .setContentTitle("Weather Update for "+jsonObject.getString("name"))
-                                                .setColor(ContextCompat.getColor(getApplicationContext(),R.color.colorPrimary))
-                                                .setContentText("It is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description")+" at "+sdf.format(cal.getTime())+". " +
-                                                        "It is "+String.format("%.2f",((temp-273)*(9/5))+32)+" degrees outside.")
-                                                .setVisibility(Notification.VISIBILITY_PUBLIC);
-                                        TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
-                                        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                                        stackBuilder.addParentStack(MainActivity.class);
-                                        stackBuilder.addNextIntent(intent);
-                                        PendingIntent pendingIntent = stackBuilder.getPendingIntent(0,PendingIntent.FLAG_UPDATE_CURRENT);
-                                        builder.setContentIntent(pendingIntent);
-                                        NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-                                        Notification notification = builder.build();
-                                      //  notification.flags = Notification.FLAG_ONGOING_EVENT;
-
-                                        notificationManager.notify(id,notification);
-                                        Log.i(TAG,"Sent notification");
-                                    }
-
-                                }
-                                catch (Exception e){
-                                    Log.e(TAG, e.getMessage());
-                                }
-                            }
-
-
-                        }
-
+                    fetch();
+                    try {
                         wait(REFRESH_TIME);
-                    }
-                    catch(Exception e){
-                        Log.e(TAG,e.getMessage());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
 
                 }
+            }
+        }
+
+        public void  fetch(){
+            try{
+
+                if(mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER)!=null)
+                    lastLocation=mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER);
+                if(mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER)!=null)
+                    lastLocation=mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER);
+
+                if(ContextCompat.checkSelfPermission(getApplicationContext()  , Manifest.permission.ACCESS_COARSE_LOCATION)== PackageManager.PERMISSION_GRANTED&&
+                        ContextCompat.checkSelfPermission(getApplicationContext()  , Manifest.permission.ACCESS_FINE_LOCATION)== PackageManager.PERMISSION_GRANTED
+                        )
+                {
+
+                    if (mGoogleApiClient == null) {
+                        mGoogleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+                                .addConnectionCallbacks(this)
+                                .addOnConnectionFailedListener(this)
+                                .addApi(LocationServices.API)
+                                .build();
+                    }
+
+
+
+
+                    if(lastLocation!=null){
+
+                        try{
+                            String jsonWeatherData = new FetchWeatherTask().execute(lastLocation.getLatitude()+" "+lastLocation.getLongitude()).get();
+                            if(jsonWeatherData==null)
+                                Log.e(TAG,"Error json");
+                            else{
+
+                                JSONObject jsonObject = new JSONObject(jsonWeatherData);
+                                double temp = jsonObject.getJSONObject("main").getDouble("temp");
+
+                                Calendar cal = Calendar.getInstance();
+                                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                                Log.i(TAG,lastLocation.toString());
+                                NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext())
+                                        .setSmallIcon(R.drawable.ms02_example_heavy_rain_showers)
+                                        .setContentTitle("Weather Update for "+jsonObject.getString("name"))
+                                        .setColor(ContextCompat.getColor(getApplicationContext(),R.color.colorPrimary))
+                                        .setContentText("It is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description")+" at "+sdf.format(cal.getTime())+". " +
+                                                "It is "+String.format("%.2f",((temp-273)*(9/5))+32)+" degrees outside.")
+                                        .setVisibility(Notification.VISIBILITY_PUBLIC);
+                                TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
+                                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                                stackBuilder.addParentStack(MainActivity.class);
+                                stackBuilder.addNextIntent(intent);
+                                PendingIntent pendingIntent = stackBuilder.getPendingIntent(0,PendingIntent.FLAG_UPDATE_CURRENT);
+                                builder.setContentIntent(pendingIntent);
+                                NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+                                Notification notification = builder.build();
+                                //  notification.flags = Notification.FLAG_ONGOING_EVENT;
+
+                                notificationManager.notify(id,notification);
+                                Log.i(TAG,"Sent notification");
+                            }
+
+                        }
+                        catch (Exception e){
+                            Log.e(TAG, e.getMessage());
+                        }
+                    }
+
+
+                }
+
+
+            }
+            catch(Exception e){
+                Log.e(TAG,e.getMessage());
             }
         }
 

@@ -16,6 +16,7 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.ShareCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 
 import android.util.Log;
@@ -35,13 +36,17 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Scanner;
 
 import com.siddharthkumar.android.helpfulweather.NotificationService.LocalBinder;
+import com.siddharthkumar.android.helpfulweather.NotificationService.NotificationThread;
 
 public class MainActivity extends AppCompatActivity implements OnConnectionFailedListener, ConnectionCallbacks{
     TextView temp;
     TextView json;
+    SwipeRefreshLayout swipeRefreshLayout;
     GoogleApiClient mGoogleApiClient;
     Location lastLocation;
     final String API_KEY = "d9a03c069a7bf250a30a3229e82a0a9b";
@@ -66,7 +71,19 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
         temp = (TextView)findViewById(R.id.temp);
         json = (TextView)findViewById(R.id.json);
+        swipeRefreshLayout = (SwipeRefreshLayout)findViewById(R.id.activity_main);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                new Handler().postDelayed(new Runnable() {
+                    @Override public void run() {
+                        getWeather();
 
+                        swipeRefreshLayout.setRefreshing(false);
+                    }
+                }, 1000);
+            }
+        });
 
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -161,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     public void onConnected(@Nullable Bundle bundle) {
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)== PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET)== PackageManager.PERMISSION_GRANTED)
         {
-
+            getWeather();
 
         }
         else{
@@ -208,8 +225,14 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
                         Log.e(TAG,"Error json");
                     else{
                        // temp.setText(jsonWeatherData);
+
+
+                        Calendar cal = Calendar.getInstance();
+                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
                         JSONObject jsonObject = new JSONObject(jsonWeatherData);
-                        temp.setText("The weather in "+jsonObject.getString("name")+" is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description"));
+                        double tempe = jsonObject.getJSONObject("main").getDouble("temp");
+                        temp.setText("It is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description")+" at "+sdf.format(cal.getTime())+". " +
+                                "It is "+String.format("%.2f",((tempe-273)*(9/5))+32)+" degrees outside.");
                         setTitle("Weather in "+jsonObject.getString("name"));
                         //json.setText(jsonWeatherData);
 
@@ -298,5 +321,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     void onServiceBound(){
 
         notificationService.updateNotification();
+
+
     }
 }
