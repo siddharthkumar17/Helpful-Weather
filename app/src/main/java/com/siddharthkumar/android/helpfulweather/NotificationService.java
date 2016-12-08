@@ -136,7 +136,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
         @Override
         public void onLocationChanged(Location location)
         {
-            Log.e(TAG, "onLocationChanged: " + location);
+
             mlastLocation.set(location);
 
 
@@ -187,12 +187,12 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
                             lastLocation=mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER);
                         if(mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER)!=null)
                             lastLocation=mLocationManager.getLastKnownLocation( LocationManager.GPS_PROVIDER);
-                        Log.i(TAG,"Getting weather");
+
                         if(ContextCompat.checkSelfPermission(getApplicationContext()  , Manifest.permission.ACCESS_COARSE_LOCATION)== PackageManager.PERMISSION_GRANTED&&
                                 ContextCompat.checkSelfPermission(getApplicationContext()  , Manifest.permission.ACCESS_FINE_LOCATION)== PackageManager.PERMISSION_GRANTED
                                 )
                         {
-                            Log.i(TAG,"Has permissions");
+
                             if (mGoogleApiClient == null) {
                                 mGoogleApiClient = new GoogleApiClient.Builder(getApplicationContext())
                                         .addConnectionCallbacks(this)
@@ -200,32 +200,30 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
                                         .addApi(LocationServices.API)
                                         .build();
                             }
-                            if (mGoogleApiClient == null)
-                                Log.i(TAG,"failed google api");
-                            else
-                            Log.i(TAG,"Has google api");
+
 
 
 
                             if(lastLocation!=null){
-                                Log.i(TAG,"lastLocation isnt null");
+
                                 try{
                                     String jsonWeatherData = new FetchWeatherTask().execute(lastLocation.getLatitude()+" "+lastLocation.getLongitude()).get();
                                     if(jsonWeatherData==null)
                                         Log.e(TAG,"Error json");
                                     else{
-                                      
-                                        JSONObject jsonObject = new JSONObject(jsonWeatherData);
 
-                                        Log.i(TAG,"Fetching weather");
+                                        JSONObject jsonObject = new JSONObject(jsonWeatherData);
+                                        double temp = jsonObject.getJSONObject("main").getDouble("temp");
+
                                         Calendar cal = Calendar.getInstance();
                                         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-
+                                        Log.i(TAG,lastLocation.toString());
                                         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext())
                                                 .setSmallIcon(R.drawable.ms02_example_heavy_rain_showers)
                                                 .setContentTitle("Weather Update for "+jsonObject.getString("name"))
                                                 .setColor(ContextCompat.getColor(getApplicationContext(),R.color.colorPrimary))
-                                                .setContentText("It is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description")+" at "+sdf.format(cal.getTime()))
+                                                .setContentText("It is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description")+" at "+sdf.format(cal.getTime())+". " +
+                                                        "It is "+String.format("%.2f",((temp-273)*(9/5))+32)+" degrees outside.")
                                                 .setVisibility(Notification.VISIBILITY_PUBLIC);
                                         TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
                                         Intent intent = new Intent(getApplicationContext(), MainActivity.class);
@@ -235,9 +233,10 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
                                         builder.setContentIntent(pendingIntent);
                                         NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
                                         Notification notification = builder.build();
-                                        notification.flags = Notification.FLAG_ONGOING_EVENT;
+                                      //  notification.flags = Notification.FLAG_ONGOING_EVENT;
 
                                         notificationManager.notify(id,notification);
+                                        Log.i(TAG,"Sent notification");
                                     }
 
                                 }
