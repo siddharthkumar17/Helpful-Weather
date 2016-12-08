@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Helpful Weather</string>
+    <string name="app_name">Weather</string>
+    <string name="text1" >Waiting for weather</string>
 </resources>

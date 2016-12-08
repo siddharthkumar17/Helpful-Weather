@@ -1,17 +1,27 @@
 package com.siddharthkumar.android.helpfulweather;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.pm.ComponentInfo;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.os.AsyncTask;
+import android.os.*;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.ShareCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+
 import android.util.Log;
-import android.widget.TextView;
+import android.widget.*;
+import android.content.*;
+import android.view.*;
 import android.widget.Toast;
 import org.json.*;
 
@@ -27,16 +37,26 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Scanner;
 
+import com.siddharthkumar.android.helpfulweather.NotificationService.LocalBinder;
+
 public class MainActivity extends AppCompatActivity implements OnConnectionFailedListener, ConnectionCallbacks{
     TextView temp;
+    TextView json;
     GoogleApiClient mGoogleApiClient;
     Location lastLocation;
     final String API_KEY = "d9a03c069a7bf250a30a3229e82a0a9b";
     final int MY_PERMISSIONS_REQUEST_LOCATION = 17;
+    final int MY_PERMISSIONS_REQUEST_FINE_LOCATION = 19;
     final int MY_PERMISSIONS_REQUEST_INTERNET = 18;
     boolean permissionInternet = true;
     boolean permissionLocation = true;
-    final String TAG = "MAIN";
+    boolean permissionFineLocation = true;
+    public static final String TAG = "helpfulweather";
+    int id=0;
+    NotificationService notificationService;
+    boolean isBound;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
 
         temp = (TextView)findViewById(R.id.temp);
+        json = (TextView)findViewById(R.id.json);
 
 
         if (mGoogleApiClient == null) {
@@ -54,6 +75,8 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
                     .addApi(LocationServices.API)
                     .build();
         }
+
+
 
 
 
@@ -75,12 +98,34 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
 
 
-                        getWeather();
+                      //  getWeather();
 
 
                 } else {
 
                     permissionLocation = false;
+
+
+                }
+                return;
+            }
+
+            case MY_PERMISSIONS_REQUEST_FINE_LOCATION: {
+
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    permissionFineLocation = true;
+
+
+
+
+                    //  getWeather();
+
+
+                } else {
+
+                    permissionFineLocation = false;
 
 
                 }
@@ -94,6 +139,12 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     protected void onStart() {
         mGoogleApiClient.connect();
         super.onStart();
+
+        Intent i = new Intent(this, NotificationService.class);
+
+        bindService(i,serviceConnection,Context.BIND_AUTO_CREATE);
+
+
     }
 
     protected void onStop() {
@@ -110,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     public void onConnected(@Nullable Bundle bundle) {
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)== PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET)== PackageManager.PERMISSION_GRANTED)
         {
-            getWeather();
+
 
         }
         else{
@@ -133,6 +184,16 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
         }
 
+        if(ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
+        {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED && permissionFineLocation) {
+                 ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_FINE_LOCATION);
+            }
+        }
 
     }
 
@@ -148,13 +209,16 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
                     else{
                        // temp.setText(jsonWeatherData);
                         JSONObject jsonObject = new JSONObject(jsonWeatherData);
-                        temp.setText("The weather in "+jsonObject.getString("name")+" is "+jsonObject.getJSONObject("weather").getString("main"));
+                        temp.setText("The weather in "+jsonObject.getString("name")+" is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description"));
+                        setTitle("Weather in "+jsonObject.getString("name"));
+                        //json.setText(jsonWeatherData);
+
 
                     }
 
                 }
                 catch (Exception e){
-                    Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, e.getMessage());
                 }
             }
 
@@ -163,9 +227,21 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     }
 
     @Override
+    protected void onDestroy() {
+
+
+        super.onDestroy();
+
+        if (serviceConnection != null) {
+            unbindService(serviceConnection);
+        }
+    }
+
+    @Override
     public void onConnectionSuspended(int i) {
 
     }
+
 
     private class FetchWeatherTask extends AsyncTask<String, Void, String>{
 
@@ -201,5 +277,26 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
             return null;
         }
+    }
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            LocalBinder binder = (LocalBinder)iBinder;
+            notificationService = binder.getService();
+            isBound = true;
+
+            onServiceBound();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            isBound = false;
+        }
+    };
+
+    void onServiceBound(){
+
+        notificationService.updateNotification();
     }
 }
