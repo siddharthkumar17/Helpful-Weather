@@ -1,3 +1,3 @@
 # HelpfulWeather
 Designed to be a simple and helpful weather app.
-![alt tag](http://i.imgur.com/ViiANTw.png =250x)
+<img src="http://i.imgur.com/ViiANTw.png" alt="Drawing" style="width: 200px;"/>
