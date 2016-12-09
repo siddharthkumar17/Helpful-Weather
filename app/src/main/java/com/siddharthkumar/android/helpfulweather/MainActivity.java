@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     TextView json;
     SwipeRefreshLayout swipeRefreshLayout;
     GoogleApiClient mGoogleApiClient;
-    Location lastLocation;
+    Location lastLocation=null;
     final String API_KEY = "d9a03c069a7bf250a30a3229e82a0a9b";
     final int MY_PERMISSIONS_REQUEST_LOCATION = 17;
     final int MY_PERMISSIONS_REQUEST_FINE_LOCATION = 19;
@@ -60,16 +60,35 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     int id=0;
     NotificationService notificationService;
     boolean isBound;
+    String message="";
 
-
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        if(lastLocation!=null)
+            savedInstanceState.putParcelable("lastLocation",lastLocation);
+        savedInstanceState.putString("message",message);
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        if(savedInstanceState!=null){
+            lastLocation = savedInstanceState.getParcelable("lastLocation");
+            message=savedInstanceState.getString("message");
+
+            Log.e(TAG,"restored last location");
+            if(lastLocation!=null)
+            {
+                Log.e(TAG,"not null");
+                getWeather(lastLocation);
+            }
+        }
 
 
         temp = (TextView)findViewById(R.id.temp);
+        if(message!="")
+            temp.setText(message);
         json = (TextView)findViewById(R.id.textView);
         swipeRefreshLayout = (SwipeRefreshLayout)findViewById(R.id.activity_main);
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -100,6 +119,8 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
 
     }
+
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -214,6 +235,61 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
     }
 
+    public void getWeather(Location location){
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)== PackageManager.PERMISSION_GRANTED)
+        {
+
+            if(location!=null){
+                try{
+                    String jsonWeatherData = new FetchWeatherTask().execute(location.getLatitude()+" "+location.getLongitude()).get();
+                    if(jsonWeatherData==null)
+                        Log.e(TAG,"Error json");
+                    else{
+                        // temp.setText(jsonWeatherData);
+
+
+                        Calendar cal = Calendar.getInstance();
+                        JSONObject jsonObject = new JSONObject(jsonWeatherData);
+
+                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                        String description = jsonObject.getJSONArray("weather").getJSONObject(0).getString("description");
+                        String time=sdf.format(cal.getTime());
+                        StringBuilder stringBuilder = new StringBuilder(time);
+                        boolean am=false;
+                        if(time.charAt(0)=='0'&&time.charAt(1)=='0')
+                        {
+                            am=true;
+                            stringBuilder.setCharAt(0,'1');
+                            stringBuilder.setCharAt(1,'2');
+                        }
+
+                        time=stringBuilder.toString();
+                        if(am)
+                            time+=" AM";
+                        else
+                            time+=" PM";
+                        double tempe = jsonObject.getJSONObject("main").getDouble("temp");
+                        tempe=(tempe-273)*(9.0/5)+32;
+                        message="It is "+String.format("%.0f",temp)+"°F and "+description+".";
+                        temp.setText(message);
+
+
+                        setTitle("Weather in "+jsonObject.getString("name"));
+                        //json.setText(jsonWeatherData);
+
+
+                    }
+
+                }
+                catch (Exception e){
+                    Log.e(TAG, e.getMessage());
+                }
+            }
+
+        }
+
+    }
+
     public void getWeather(){
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)== PackageManager.PERMISSION_GRANTED)
         {
@@ -248,11 +324,12 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
                         else
                             time+=" PM";
                         double tempe = jsonObject.getJSONObject("main").getDouble("temp");
-                        tempe=(tempe-273)*(9.0/5)+32;
-                        temp.setText("It is "+description+" at "+time+". " +
-                                "It is "+String.format("%.2f",tempe)+" degrees outside.");
+                        tempe= (tempe-273)*9.0/5+32;
+                        message="It is "+(int)tempe+"°F and "+description+".";
+                        temp.setText(message);
+
+
                         setTitle("Weather in "+jsonObject.getString("name"));
-                        //json.setText(jsonWeatherData);
 
 
                     }

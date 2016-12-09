@@ -253,7 +253,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
                                         .setSmallIcon(R.drawable.ms02_example_heavy_rain_showers)
                                         .setContentTitle("Weather Update for "+jsonObject.getString("name"))
                                         .setColor(ContextCompat.getColor(getApplicationContext(),R.color.colorPrimary))
-                                        .setContentText("It is "+String.format("%.0f",temp)+"°F and "+description+".")
+                                        .setContentText("It is "+(int)temp+"°F and "+description+".")
                                         .setVisibility(Notification.VISIBILITY_PUBLIC);
                                 TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
                                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);
