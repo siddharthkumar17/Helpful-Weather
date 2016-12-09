@@ -23,6 +23,7 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.util.StringBuilderPrinter;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -81,7 +82,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
                     LocationManager.NETWORK_PROVIDER, REFRESH_TIME, LOCATION_DISTANCE,
                     mLocationListeners[1]);
             if(mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER)!=null)
-              lastLocation=mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER);
+                lastLocation=mLocationManager.getLastKnownLocation( LocationManager.NETWORK_PROVIDER);
         } catch (java.lang.SecurityException ex) {
             Log.i(TAG, "fail to request location update, ignore", ex);
         } catch (IllegalArgumentException ex) {
@@ -108,7 +109,7 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
             for (int i = 0; i < mLocationListeners.length; i++) {
                 try {
                     if(ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED)
-                         mLocationManager.removeUpdates(mLocationListeners[i]);
+                        mLocationManager.removeUpdates(mLocationListeners[i]);
                 } catch (Exception ex) {
                     Log.i(TAG, "fail to remove location listeners, ignore", ex);
                 }
@@ -231,12 +232,28 @@ public class NotificationService extends Service implements GoogleApiClient.Conn
                                 Calendar cal = Calendar.getInstance();
                                 SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
                                 Log.i(TAG,lastLocation.toString());
+                                temp = (temp-273)*9.0/5+32;
+                                String description = jsonObject.getJSONArray("weather").getJSONObject(0).getString("description");
+                                String time=sdf.format(cal.getTime());
+                                StringBuilder stringBuilder = new StringBuilder(time);
+                                boolean am=false;
+                                if(time.charAt(0)=='0'&&time.charAt(1)=='0')
+                                {
+                                    am=true;
+                                    stringBuilder.setCharAt(0,'1');
+                                    stringBuilder.setCharAt(1,'2');
+                                }
+
+                                time=stringBuilder.toString();
+                                if(am)
+                                    time+=" AM";
+                                else
+                                    time+=" PM";
                                 NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext())
                                         .setSmallIcon(R.drawable.ms02_example_heavy_rain_showers)
                                         .setContentTitle("Weather Update for "+jsonObject.getString("name"))
                                         .setColor(ContextCompat.getColor(getApplicationContext(),R.color.colorPrimary))
-                                        .setContentText("It is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description")+" at "+sdf.format(cal.getTime())+". " +
-                                                "It is "+String.format("%.2f",((temp-273)*(9/5))+32)+" degrees outside.")
+                                        .setContentText("It is "+String.format("%.0f",temp)+"°F and "+description+".")
                                         .setVisibility(Notification.VISIBILITY_PUBLIC);
                                 TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
                                 Intent intent = new Intent(getApplicationContext(), MainActivity.class);

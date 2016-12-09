@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
 
         temp = (TextView)findViewById(R.id.temp);
-        json = (TextView)findViewById(R.id.json);
+        json = (TextView)findViewById(R.id.textView);
         swipeRefreshLayout = (SwipeRefreshLayout)findViewById(R.id.activity_main);
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
 
 
-                      //  getWeather();
+                    //  getWeather();
 
 
                 } else {
@@ -191,9 +191,9 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
 
 
-                    ActivityCompat.requestPermissions(this,
-                            new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                            MY_PERMISSIONS_REQUEST_LOCATION);
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
 
 
 
@@ -206,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED && permissionFineLocation) {
-                 ActivityCompat.requestPermissions(this,
+                ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                         MY_PERMISSIONS_REQUEST_FINE_LOCATION);
             }
@@ -224,15 +224,33 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
                     if(jsonWeatherData==null)
                         Log.e(TAG,"Error json");
                     else{
-                       // temp.setText(jsonWeatherData);
+                        // temp.setText(jsonWeatherData);
 
 
                         Calendar cal = Calendar.getInstance();
-                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
                         JSONObject jsonObject = new JSONObject(jsonWeatherData);
+
+                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                        String description = jsonObject.getJSONArray("weather").getJSONObject(0).getString("description");
+                        String time=sdf.format(cal.getTime());
+                        StringBuilder stringBuilder = new StringBuilder(time);
+                        boolean am=false;
+                        if(time.charAt(0)=='0'&&time.charAt(1)=='0')
+                        {
+                            am=true;
+                            stringBuilder.setCharAt(0,'1');
+                            stringBuilder.setCharAt(1,'2');
+                        }
+
+                        time=stringBuilder.toString();
+                        if(am)
+                            time+=" AM";
+                        else
+                            time+=" PM";
                         double tempe = jsonObject.getJSONObject("main").getDouble("temp");
-                        temp.setText("It is "+jsonObject.getJSONArray("weather").getJSONObject(0).getString("description")+" at "+sdf.format(cal.getTime())+". " +
-                                "It is "+String.format("%.2f",((tempe-273)*(9/5))+32)+" degrees outside.");
+                        tempe=(tempe-273)*(9.0/5)+32;
+                        temp.setText("It is "+description+" at "+time+". " +
+                                "It is "+String.format("%.2f",tempe)+" degrees outside.");
                         setTitle("Weather in "+jsonObject.getString("name"));
                         //json.setText(jsonWeatherData);
 
